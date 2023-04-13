@@ -1,15 +1,28 @@
-import express from 'express';
-import cores from 'cors';
-import geolocations from './api/geo.route.js';
+import app from "./index.js";
+import mongodb from "mongodb";
+import dotenv from "dotenv";
+import GeoDAO from "./dao/geoDAO.js";
 
-const app = express();
+async function main() {
+    dotenv.config();
 
-app.use(cores());
-app.use(express.json());
+    const client = new mongodb.MongoClient(
+        process.env.GEO_DB_URI
+    )
 
-app.use("/api/v1/geoLocations", geolocations);
-app.use('*', (req, res) => {
-    res.status(400).json({ error: "not found" });
-})
+    const port = process.env.PORT || 8000;
 
-export default app;
+    try {
+        await client.connect();
+        await GeoDAO.injectDB(client);
+
+        app.listen(port, () => {
+            console.log('Server is running on port: ' + port);
+        })
+    } catch (e) {
+        console.log(e);
+        process.exit(1);
+    }
+}
+
+main().catch(console.error);
